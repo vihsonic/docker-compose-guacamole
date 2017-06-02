@@ -126,6 +126,7 @@ CREATE TABLE guacamole_user (
   username      varchar(128) NOT NULL,
   password_hash bytea        NOT NULL,
   password_salt bytea,
+  password_date timestamptz  NOT NULL,
 
   -- Account disabled/expired status
   disabled      boolean      NOT NULL DEFAULT FALSE,
@@ -384,6 +385,30 @@ CREATE INDEX ON guacamole_connection_history(connection_id);
 CREATE INDEX ON guacamole_connection_history(sharing_profile_id);
 CREATE INDEX ON guacamole_connection_history(start_date);
 CREATE INDEX ON guacamole_connection_history(end_date);
+
+--
+-- User password history
+--
+
+CREATE TABLE guacamole_user_password_history (
+
+  password_history_id serial  NOT NULL,
+  user_id             integer NOT NULL,
+
+  -- Salted password
+  password_hash bytea        NOT NULL,
+  password_salt bytea,
+  password_date timestamptz  NOT NULL,
+
+  PRIMARY KEY (password_history_id),
+
+  CONSTRAINT guacamole_user_password_history_ibfk_1
+    FOREIGN KEY (user_id)
+    REFERENCES guacamole_user (user_id) ON DELETE CASCADE
+
+);
+
+CREATE INDEX ON guacamole_user_password_history(user_id);
 --
 -- Licensed to the Apache Software Foundation (ASF) under one
 -- or more contributor license agreements.  See the NOTICE file
@@ -405,10 +430,11 @@ CREATE INDEX ON guacamole_connection_history(end_date);
 
 
 -- Create default user "guacadmin" with password "guacadmin"
-INSERT INTO guacamole_user (username, password_hash, password_salt)
+INSERT INTO guacamole_user (username, password_hash, password_salt, password_date)
 VALUES ('guacadmin',
     E'\\xCA458A7D494E3BE824F5E1E175A1556C0F8EEF2C2D7DF3633BEC4A29C4411960',  -- 'guacadmin'
-    E'\\xFE24ADC5E11E2B25288D1704ABE67A79E342ECC26064CE69C5B3177795A82264');
+    E'\\xFE24ADC5E11E2B25288D1704ABE67A79E342ECC26064CE69C5B3177795A82264',
+    CURRENT_TIMESTAMP);
 
 -- Grant this user all system permissions
 INSERT INTO guacamole_system_permission
